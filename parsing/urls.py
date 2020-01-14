@@ -19,6 +19,5 @@ from django.conf.urls import *
 from parsing.views import *
 urlpatterns = [
     path('', MainView.index),
-    path('parser/', MainView.parser),
     re_path(r'^search/$', MainView.getValue)
 ]

@@ -9,25 +9,27 @@ import re
 
 
 class Helper:
-    def figure(base_url, req):
+    def figure(req, default = False):
+        base_url = 'https://zakupki.gov.ru/epz/order/extendedsearch/results.html'
         x = base_url + str('?')
-        if req['name'] != '':
-            x = x + str('searchString=') + str(req['name']) + str('&')
-        if req['costFrom'] != 'false':
-            x = x + str('priceFromGeneral=') + str(req['costFrom']) + str('&')
-        if req['costTo'] != 'false':
-            x = x + str('priceToGeneral=') + str(req['costTo']) + str('&')
-        if req['sortBy'] != 'false':
-            x = x + str('sortBy=') + str(req['sortBy']) + str('&')
-        if req['showBy'] != 'false':
-            x = x + str('recordsPerPage=') + str(req['showBy'])
+        if default == False:
+            if req['name'] != '':
+                x = x + str('searchString=') + str(req['name']) + str('&')
+            if req['costFrom'] != 'false':
+                x = x + str('priceFromGeneral=') + str(req['costFrom']) + str('&')
+            if req['costTo'] != 'false':
+                x = x + str('priceToGeneral=') + str(req['costTo']) + str('&')
+            if req['sortBy'] != 'false':
+                x = x + str('sortBy=') + str(req['sortBy']) + str('&')
+            if req['showBy'] != 'false':
+                x = x + str('recordsPerPage=') + str(req['showBy'])
         return x
 
 
 class Parser:
-    def pars_gos(base_url):
+    def pars_gos(uri):
         session = requests.Session()
-        request = session.get(base_url, headers={'User-Agent': 'Mozilla/5.0'})
+        request = session.get(uri, headers={'User-Agent': 'Mozilla/5.0'})
         # print('OK')
         soup = bs(request.content, 'lxml')
         items = soup.find_all('div', attrs={'class': 'search-registry-entry-block'})
@@ -35,6 +37,7 @@ class Parser:
         inx = 0
         for h in items:
             regForm = h.find('div', attrs={'class': 'registry-entry__header-top__title'}).text.strip()
+            link = h.find('div', attrs={'class': 'registry-entry__header-mid__number'}).find('a', href=True)['href']
             numberOrder = h.find('div', attrs={'class': 'registry-entry__header-mid__number'}).text.split(',')[ 0].strip()
             #
             typeOrder = h.find('div', attrs={'class': 'registry-entry__header-mid__title'}).text.strip()
@@ -46,8 +49,9 @@ class Parser:
             #
             price = h.find('div', attrs={'class': 'price-block__value'}).text.replace('₽', '').split(',')[0].strip()
             #
-            dateBlock = h.find('div', attrs={'class': 'registry-entry__right-block'}).find('div', attrs={'class': 'data-block'})
-
-            links.insert(inx, (regForm, numberOrder, typeOrder, desc, clientLink, clientName, price, dateBlock))
+            dateBlock = []
+            for ds in h.find('div', attrs={'class': 'registry-entry__right-block'}).find('div', attrs={'class': 'data-block'}).find_all('div', attrs={'class', 'data-block__value'}):
+                dateBlock.append(ds.text)
+            links.insert(inx, (regForm, link, numberOrder, typeOrder, desc, clientLink, clientName, price, dateBlock))
             inx = inx + 1
         return links
